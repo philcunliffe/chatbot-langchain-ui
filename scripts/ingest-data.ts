@@ -1,13 +1,11 @@
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
 import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
-import { PineconeStore } from 'langchain/vectorstores/pinecone';
-import { pinecone } from '@/utils/pinecone-client';
+import { HNSWLib } from "langchain/vectorstores/hnswlib";
 import { CustomPDFLoader } from '@/utils/customPDFLoader';
-import { PINECONE_INDEX_NAME, PINECONE_NAME_SPACE } from '@/config/pinecone';
 import { DirectoryLoader } from 'langchain/document_loaders/fs/directory';
 
 /* Name of directory to retrieve your files from */
-const filePath = 'docs';
+const filePath = './data';
 
 export const run = async () => {
   try {
@@ -30,15 +28,10 @@ export const run = async () => {
 
     console.log('creating vector store...');
     /*create and store the embeddings in the vectorStore*/
-    const embeddings = new OpenAIEmbeddings();
-    const index = pinecone.Index(PINECONE_INDEX_NAME); //change to your own index name
+    const vectorStore = await HNSWLib.fromDocuments(docs, new OpenAIEmbeddings({}));
 
-    //embed the PDF documents
-    await PineconeStore.fromDocuments(docs, embeddings, {
-      pineconeIndex: index,
-      namespace: PINECONE_NAME_SPACE,
-      textKey: 'text',
-    });
+    // Save
+    await vectorStore.save('./store');
   } catch (error) {
     console.log('error', error);
     throw new Error('Failed to ingest your data');
